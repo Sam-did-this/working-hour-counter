@@ -12,21 +12,21 @@ def run():
     """Launch the App for Dad window."""
 
     def refresh_list():
-    try:
-        entries = load_entries()
-    except Exception as e:
-        messagebox.showerror(
-            "Error al leer los datos",
-            f"{type(e).__name__}: {e}\n\nRevisa target.json"
-        )
-        return
+        try:
+            entries = load_entries()
+        except Exception as e:
+            messagebox.showerror(
+                "Error al leer los datos",
+                f"{type(e).__name__}: {e}\n\nRevisa target.json"
+            )
+            return
 
-    listbox.delete(0, tk.END)
-    for item in entries:
-        fecha   = item.get("fecha", "?")
-        entrada = item.get("entrada", "?")
-        salida  = item.get("salida", "?")
-        listbox.insert(tk.END, f"{fecha}  {entrada} -> {salida}")
+        listbox.delete(0, tk.END)
+        for item in entries:
+            fecha   = item.get("fecha", "?")
+            entrada = item.get("entrada", "?")
+            salida  = item.get("salida", "?")
+            listbox.insert(tk.END, f"{fecha}  {entrada} -> {salida}")
 
     def submit():
         start = entry_in.get().strip()
@@ -86,11 +86,11 @@ def run():
     listbox.pack(pady=5, padx=15, fill=tk.BOTH, expand=True)
 
     tk.Label(
-    root,
-    text="No edites report.xlsx — se sobrescribe. Edita target.json solo si sabes qué haces.",
-    fg="gray",
-    font=("TkDefaultFont", 9, "italic")
-).pack(pady=5)
+        root,
+        text="No edites report.xlsx — se sobrescribe. Edita target.json solo si sabes qué haces.",
+        fg="gray",
+        font=("TkDefaultFont", 9, "italic"),
+    ).pack(pady=5)
 
     tk.Button(root, text="Generar Excel", command=generate_excel).pack(pady=5)
     tk.Button(root, text="Cerrar", command=root.destroy).pack(pady=5)
