@@ -1,9 +1,15 @@
+# transfer_data.py — load/save entries and append to the audit log
+
 import json
 from pathlib import Path
 import shutil
+from datetime import datetime
 
 DATA_FILE = Path(__file__).resolve().parent / "target.json"
+LOG_FILE  = Path(__file__).resolve().parent / "weekly_log.jsonl"
 
+
+# ---------- entries ----------
 
 def load_entries():
     if not DATA_FILE.exists():
@@ -38,3 +44,12 @@ def save_entry(entry):
     entries = load_entries()
     entries.append(entry)
     save_all(entries)
+
+
+# ---------- audit log ----------
+
+def append_log(event):
+    """Append one JSON object per line. Never rewrites the file."""
+    event = {"ts": datetime.now().isoformat(timespec="seconds"), **event}
+    with LOG_FILE.open("a", encoding="utf-8") as f:
+        f.write(json.dumps(event, ensure_ascii=False) + "\n")

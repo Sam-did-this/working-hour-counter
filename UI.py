@@ -1,101 +1,114 @@
+# UI.py — minimal App for Dad window
+
 import tkinter as tk
 from tkinter import messagebox
 from datetime import date
 
-from transfer_data import save_entry, load_entries
-from settings import HOURLY_RATE, CURRENCY
+from transfer_data import save_entry, append_log
+from settings import HOURLY_RATE
 from timesheet import shift_hours, daily_pay
-from report import export_all
+from report import export_weekly_report
+
+
+INSTRUCTION = (
+    "Por favor ingresa tu hora de entrada y de salida.\n"
+    "Usa formato AM/PM (ejemplo: 7:30 AM, 8:07 PM)."
+)
+
+WARNING = (
+    "No te preocupes si ingresas mal el horario, solo sigue intentando "
+    "hasta que lo ingreses bien, luego me comunicas para arreglarlo.\n"
+    "Cualquier cosa que escribas en el Excel se borrará sin poder ser guardada."
+)
 
 
 def run():
     """Launch the App for Dad window."""
 
-    def refresh_list():
-        try:
-            entries = load_entries()
-        except Exception as e:
-            messagebox.showerror(
-                "Error al leer los datos",
-                f"{type(e).__name__}: {e}\n\nRevisa target.json"
-            )
-            return
-
-        listbox.delete(0, tk.END)
-        for item in entries:
-            fecha   = item.get("fecha", "?")
-            entrada = item.get("entrada", "?")
-            salida  = item.get("salida", "?")
-            listbox.insert(tk.END, f"{fecha}  {entrada} -> {salida}")
+    def set_status(text, ok=True):
+        status_var.set(text)
+        status_label.config(fg="#2E7D32" if ok else "#C62828")
 
     def submit():
         start = entry_in.get().strip()
         end   = entry_out.get().strip()
 
         if not start or not end:
-            messagebox.showwarning("Faltan datos", "Ingresa hora de entrada y salida.")
+            set_status("Faltan datos: ingresa hora de entrada y de salida.", ok=False)
             return
 
         try:
             h = shift_hours(start, end)
             p = daily_pay(start, end, HOURLY_RATE)
         except ValueError:
-            messagebox.showerror("Formato inválido", "Usa formato como 7:30 AM o 19:30")
+            set_status("Formato inválido. Usa algo como 7:30 AM o 19:30.", ok=False)
             return
 
-        save_entry({
+        entry = {
             "fecha":   date.today().isoformat(),
             "entrada": start,
             "salida":  end,
             "horas":   round(h, 2),
             "pago":    p,
-        })
+        }
+        save_entry(entry)
+        append_log({"action": "add_entry", "entry": entry})
 
         entry_in.delete(0, tk.END)
         entry_out.delete(0, tk.END)
-        refresh_list()
+        entry_in.focus_set()
+
+        set_status("✓ Guardado. Revisa tu reporte en el archivo Excel.", ok=True)
 
     def generate_excel():
         try:
-            paths = export_all()
-            if not paths:
-                messagebox.showinfo("Nada", "No hay entradas para exportar.")
-                return
-            msg = "\n".join(str(p) for p in paths)
-            messagebox.showinfo("Listo", f"Excel generado:\n{msg}")
+            path = export_weekly_report()
+            set_status(f"✓ Excel actualizado: {path.name}", ok=True)
+        except PermissionError:
+            set_status(
+                "No se puede guardar el Excel. Por favor cierra el documento si es que lo tienes abierto. Gracias.",
+                ok=False,
+            )
         except Exception as e:
+            set_status(f"Error al generar Excel: {type(e).__name__}: {e}", ok=False)
             messagebox.showerror("Error", f"{type(e).__name__}: {e}")
 
-    # --- Window ---
+    # --- window ---
     root = tk.Tk()
     root.title("App for Dad")
-    root.geometry("700x550")
-
-    tk.Label(root, text="Hora de entrada:").pack(pady=(15, 5))
-    entry_in = tk.Entry(root, width=20)
-    entry_in.pack(pady=5)
-
-    tk.Label(root, text="Hora de salida:").pack(pady=(10, 5))
-    entry_out = tk.Entry(root, width=20)
-    entry_out.pack(pady=5)
-
-    tk.Button(root, text="Guardar", command=submit).pack(pady=10)
-
-    tk.Label(root, text="Registros:").pack(pady=(10, 5))
-    listbox = tk.Listbox(root, width=80, height=12)
-    listbox.pack(pady=5, padx=15, fill=tk.BOTH, expand=True)
+    root.geometry("560x480")
 
     tk.Label(
-        root,
-        text="No edites report.xlsx — se sobrescribe. Edita target.json solo si sabes qué haces.",
-        fg="gray",
-        font=("TkDefaultFont", 9, "italic"),
-    ).pack(pady=5)
+        root, text=INSTRUCTION,
+        justify="center", wraplength=500,
+    ).pack(pady=(20, 15))
 
-    tk.Button(root, text="Generar Excel", command=generate_excel).pack(pady=5)
-    tk.Button(root, text="Cerrar", command=root.destroy).pack(pady=5)
+    tk.Label(root, text="Hora de entrada:").pack(pady=(10, 3))
+    entry_in = tk.Entry(root, width=20, justify="center")
+    entry_in.pack(pady=3)
+
+    tk.Label(root, text="Hora de salida:").pack(pady=(10, 3))
+    entry_out = tk.Entry(root, width=20, justify="center")
+    entry_out.pack(pady=3)
+
+    tk.Button(root, text="Guardar", width=18, command=submit).pack(pady=(15, 5))
+
+    tk.Label(
+        root, text=WARNING,
+        justify="center", wraplength=500,
+        fg="gray", font=("TkDefaultFont", 9, "italic"),
+    ).pack(pady=(10, 10))
+
+    status_var = tk.StringVar(value="")
+    status_label = tk.Label(
+        root, textvariable=status_var,
+        justify="center", wraplength=500,
+    )
+    status_label.pack(pady=(5, 15))
+
+    tk.Button(root, text="Generar Excel", width=18, command=generate_excel).pack(pady=3)
+    tk.Button(root, text="Cerrar",       width=18, command=root.destroy).pack(pady=3)
 
     entry_in.focus_set()
     root.bind("<Return>", lambda e: submit())
-    refresh_list()
     root.mainloop()

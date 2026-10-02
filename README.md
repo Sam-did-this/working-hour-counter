@@ -1,1 +1,16 @@
-So this is a project to caculate the total amount for a period of time (the amount of time this app's been use) by months and weeks. This app will create a launcher where the user will need to add the values of the result as well as the amount of money that he's winning by the hour. In a possible update I'll add the possibility to change it after the user has already inserted a number. Future updates on the way.
+# App for Dad
+
+A small desktop time-tracker that turns daily work shifts into a clean weekly
+pay report. Built for one real user — my father — and designed to survive
+being used by someone who is not a developer.
+
+
+## What it does
+
+You type the time you started and the time you finished. The app stores the
+entry, computes hours and pay, and writes an Excel file with two sheets:
+
+- **Semana Anterior** — the week that just ended (Mon–Sun)
+- **Semana Actual** — the week in progress
+
+That's it. Two inputs, one button to save, one button to export.
